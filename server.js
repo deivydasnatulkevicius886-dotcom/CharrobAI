@@ -13,13 +13,27 @@ app.get("/", (req, res) => {
 });
 
 app.post("/chat", async (req, res) => {
+
     try {
+
         const message = req.body.message;
+
+        console.log("Received message:", message);
 
         if (!message) {
             return res.status(400).json({
                 error: "Message is missing"
             });
+        }
+
+        if (!process.env.OPENAI_API_KEY) {
+
+            console.error("OPENAI_API_KEY is missing!");
+
+            return res.status(500).json({
+                error: "OPENAI_API_KEY is missing on Render"
+            });
+
         }
 
         const response = await fetch(
@@ -34,43 +48,82 @@ app.post("/chat", async (req, res) => {
                 },
 
                 body: JSON.stringify({
+
                     model: "gpt-4o-mini",
 
                     instructions:
-                        "You are CharrobAI, a friendly AI assistant inside a Roblox game. Answer in the same language as the player.",
+                        "You are CharrobAI, a friendly AI assistant inside a Roblox game. Always answer in the same language as the player.",
 
                     input: message
+
                 })
+
             }
         );
 
+
         const data = await response.json();
 
+        console.log(
+            "OpenAI Status:",
+            response.status
+        );
+
+        console.log(
+            "OpenAI Response:",
+            JSON.stringify(data)
+        );
+
+
         if (!response.ok) {
-            console.log(data);
 
             return res.status(500).json({
-                error: "OpenAI API error"
+
+                error:
+                    data.error?.message
+                    || "OpenAI API request failed"
+
             });
+
         }
 
+
+        const answer =
+            data.output_text
+            || "Sorry, I couldn't answer that.";
+
+
         res.json({
-            reply: data.output_text ||
-                "Sorry, I couldn't answer that."
+
+            reply: answer
+
         });
+
 
     } catch (error) {
 
-        console.error(error);
+        console.error(
+            "CHARROBAI SERVER ERROR:",
+            error
+        );
 
         res.status(500).json({
-            error: "Server error"
+
+            error:
+                error.message
+                || "Unknown server error"
+
         });
+
     }
+
 });
 
+
 app.listen(PORT, () => {
+
     console.log(
         `CharrobAI server running on port ${PORT}`
     );
+
 });
